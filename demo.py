@@ -38,7 +38,7 @@ def parse_args():
                         default=0, type=int)
     parser.add_argument('--snapshot',
                         dest='snapshot', help='Name of model snapshot.',
-                        default='', type=str)
+                        default='snapshots/6DRepNet_300W_LP_AFLW2000.pth', type=str)
     parser.add_argument('--save_viz',
                         dest='save_viz', help='Save images with pose cube.',
                         default=False, type=bool)
