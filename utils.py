@@ -112,11 +112,11 @@ def get_pt2d_from_mat(mat_path):
     return pt2d
 
 # batch*n
-def normalize_vector( v, use_gpu=True):
+def normalize_vector( v, use_gpu=True if torch.cuda.is_available() else False):
     batch=v.shape[0]
     v_mag = torch.sqrt(v.pow(2).sum(1))# batch
     if use_gpu:
-        v_mag = torch.max(v_mag, torch.autograd.Variable(torch.FloatTensor([1e-8]).cuda()))
+        v_mag = torch.max(v_mag, torch.autograd.Variable(torch.FloatTensor([1e-8])).cuda())
     else:
         v_mag = torch.max(v_mag, torch.autograd.Variable(torch.FloatTensor([1e-8])))  
     v_mag = v_mag.view(batch,1).expand(batch,v.shape[1])
@@ -139,7 +139,7 @@ def cross_product( u, v):
     
 #poses batch*6
 #poses
-def compute_rotation_matrix_from_ortho6d(poses, use_gpu=True):
+def compute_rotation_matrix_from_ortho6d(poses, use_gpu=True if torch.cuda.is_available() else False):
     x_raw = poses[:,0:3]#batch*3
     y_raw = poses[:,3:6]#batch*3
         
@@ -158,7 +158,7 @@ def compute_rotation_matrix_from_ortho6d(poses, use_gpu=True):
 #input batch*4*4 or batch*3*3
 #output torch batch*3 x, y, z in radiant
 #the rotation is in the sequence of x,y,z
-def compute_euler_angles_from_rotation_matrices(rotation_matrices, use_gpu=True):
+def compute_euler_angles_from_rotation_matrices(rotation_matrices, use_gpu=True if torch.cuda.is_available() else False):
     batch=rotation_matrices.shape[0]
     R=rotation_matrices
     sy = torch.sqrt(R[:,0,0]*R[:,0,0]+R[:,1,0]*R[:,1,0])
@@ -174,7 +174,7 @@ def compute_euler_angles_from_rotation_matrices(rotation_matrices, use_gpu=True)
     zs=R[:,1,0]*0
         
     if use_gpu:
-        out_euler=torch.autograd.Variable(torch.zeros(batch,3).cuda())
+        out_euler=torch.autograd.Variable(torch.zeros(batch,3)).cuda()
     else:
         out_euler=torch.autograd.Variable(torch.zeros(batch,3))  
     out_euler[:,0]=x*(1-singular)+xs*singular

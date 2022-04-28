@@ -69,7 +69,9 @@ def extract_headpose(video_path):
                 y_pred_deg = euler[:, 1].cpu().numpy().item()
                 r_pred_deg = euler[:, 2].cpu().numpy().item()
                 out_data[frame_count] = {'Face ID': face_id,
-                                         'Pitch/Roll/Yaw': [p_pred_deg, r_pred_deg, y_pred_deg],
+                                         'Pitch': p_pred_deg,
+                                         'Roll': r_pred_deg,
+                                         'Yaw': y_pred_deg,
                                          'Box': box,
                                          'Landmarks': landmarks}
                 face_id += 1
