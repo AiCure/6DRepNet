@@ -16,7 +16,10 @@ from face_detection import RetinaFace
 
 class video_queue:
     def __init__(self, parent_dir, out_dir, dataset_name=None):
-        self.dataset_name = parent_dir.split('/')[1]
+        if dataset_name == None:
+            self.dataset_name = parent_dir.split('/')[1]
+        else:
+            self.dataset_name = dataset_name
         self.out_dir = out_dir
         paths = glob.glob(f'{parent_dir}/*.mp4')
         self.video_paths = deque(paths)
@@ -55,13 +58,7 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
             faces = detector(frame)
             face_id = 0
             for box, landmarks, score in faces:
-                if score < 0.95:    # this threshold should probably be tuned
-                    # out_data[frame_count] = {'Face': 0,
-                    #         'Pitch': None,
-                    #         'Roll': None,
-                    #         'Yaw': None,
-                    #         'Box': None,
-                    #         'Landmarks': None}
+                if score < 0.95:
                     continue
                 x_min = int(box[0])
                 y_min = int(box[1])

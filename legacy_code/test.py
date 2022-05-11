@@ -24,6 +24,33 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 
+# def parse_args():
+#     """Parse input arguments."""
+#     parser = argparse.ArgumentParser(
+#         description='Head pose estimation using the 6DRepNet.')
+#     parser.add_argument('--gpu',
+#                         dest='gpu_id', help='GPU device id to use [0]',
+#                         default=0, type=int)
+#     parser.add_argument('--data_dir',
+#                         dest='data_dir', help='Directory path for data.',
+#                         default='datasets/AFLW2000', type=str)
+#     parser.add_argument('--filename_list',
+#                         dest='filename_list',
+#                         help='Path to text file containing relative paths for every example.',
+#                         default='datasets/AFLW2000/files.txt', type=str)  # datasets/BIWI_noTrack.npz
+#     parser.add_argument('--snapshot',
+#                         dest='snapshot', help='Name of model snapshot.',
+#                         default='', type=str)
+#     parser.add_argument('--batch_size',
+#                         dest='batch_size', help='Batch size.',
+#                         default=64, type=int)
+#     parser.add_argument('--show_viz',
+#                         dest='show_viz', help='Save images with pose cube.',
+#                         default=False, type=bool)
+#     parser.add_argument('--dataset',
+#                         dest='dataset', help='Dataset type.',
+#                         default='AFLW2000', type=str)
+
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(
@@ -33,14 +60,14 @@ def parse_args():
                         default=0, type=int)
     parser.add_argument('--data_dir',
                         dest='data_dir', help='Directory path for data.',
-                        default='datasets/AFLW2000', type=str)
+                        default='datasets/BIWI', type=str)
     parser.add_argument('--filename_list',
                         dest='filename_list',
                         help='Path to text file containing relative paths for every example.',
-                        default='datasets/AFLW2000/files.txt', type=str)  # datasets/BIWI_noTrack.npz
+                        default='datasets/BIWI/BIWI_noTrack.npz', type=str)  # datasets/BIWI_noTrack.npz
     parser.add_argument('--snapshot',
                         dest='snapshot', help='Name of model snapshot.',
-                        default='', type=str)
+                        default='snapshots/6DRepNet_300W_LP_BIWI.pth', type=str)
     parser.add_argument('--batch_size',
                         dest='batch_size', help='Batch size.',
                         default=64, type=int)
@@ -49,7 +76,8 @@ def parse_args():
                         default=False, type=bool)
     parser.add_argument('--dataset',
                         dest='dataset', help='Dataset type.',
-                        default='AFLW2000', type=str)
+                        default='BIWI', type=str)
+
 
 
     args = parser.parse_args()
@@ -140,23 +168,23 @@ if __name__ == '__main__':
             roll_error += torch.sum(torch.min(torch.stack((torch.abs(r_gt_deg - r_pred_deg), torch.abs(r_pred_deg + 360 - r_gt_deg), torch.abs(
                 r_pred_deg - 360 - r_gt_deg), torch.abs(r_pred_deg + 180 - r_gt_deg), torch.abs(r_pred_deg - 180 - r_gt_deg))), 0)[0])
 
-            if args.show_viz:
-                name = name[0]
-                if args.dataset == 'AFLW2000':
-                    cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
+            # if args.show_viz:
+            #     name = name[0]
+            #     if args.dataset == 'AFLW2000':
+            #         cv2_img = cv2.imread(os.path.join(args.data_dir, name + '.jpg'))
                    
-                elif args.dataset == 'BIWI':
-                    vis = np.uint8(name)
-                    h,w,c = vis.shape
-                    vis2 = cv2.CreateMat(h, w, cv2.CV_32FC3)
-                    vis0 = cv2.fromarray(vis)
-                    cv2.CvtColor(vis0, vis2, cv2.CV_GRAY2BGR)
-                    cv2_img = cv2.imread(vis2)
-                utils.draw_axis(cv2_img, y_pred_deg[0], p_pred_deg[0], r_pred_deg[0], tdx=200, tdy=200, size=100)
-                #utils.plot_pose_cube(cv2_img, y_pred_deg[0], p_pred_deg[0], r_pred_deg[0], size=200)
-                cv2.imshow("Test", cv2_img)
-                cv2.waitKey(5)
-                cv2.imwrite(os.path.join('output/img/',name+'.png'),cv2_img)
+            #     elif args.dataset == 'BIWI':
+            #         vis = np.uint8(name)
+            #         h,w,c = vis.shape
+            #         vis2 = cv2.CreateMat(h, w, cv2.CV_32FC3)
+            #         vis0 = cv2.fromarray(vis)
+            #         cv2.CvtColor(vis0, vis2, cv2.CV_GRAY2BGR)
+            #         cv2_img = cv2.imread(vis2)
+            #     utils.draw_axis(cv2_img, y_pred_deg[0], p_pred_deg[0], r_pred_deg[0], tdx=200, tdy=200, size=100)
+            #     #utils.plot_pose_cube(cv2_img, y_pred_deg[0], p_pred_deg[0], r_pred_deg[0], size=200)
+            #     cv2.imshow("Test", cv2_img)
+            #     cv2.waitKey(5)
+            #     cv2.imwrite(os.path.join('output/img/',name+'.png'),cv2_img)
                 
         print('Yaw: %.4f, Pitch: %.4f, Roll: %.4f, MAE: %.4f' % (
             yaw_error / total, pitch_error / total, roll_error / total,
