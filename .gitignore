@@ -132,3 +132,6 @@ snapshots
 venv
 datasets
 processed_data
+tmp
+.DS_Store
+*.mp4
