@@ -6,8 +6,9 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
+import mediapipe as mp
 from pathlib import Path
-from model import SixDRepNet
+from .model import SixDRepNet
 from collections import deque
 from torchvision import transforms
 from threading import Thread, Lock
@@ -31,6 +32,8 @@ class video_queue:
 
 
 def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=None, thread_id=None):
+    mp_face_detection = mp.solutions.face_detection
+    face_detection = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5)
     out_data = dict()
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     if model == None:
@@ -54,11 +57,36 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     with torch.no_grad():
         for frame_count in tqdm(range(num_frames), leave=False, desc=f'Thread: {thread_id} - Video: {video_id} - {num_videos - num_left}/{num_videos}'):
-            ret, frame = cap.read()
+            try:
+                ret, frame = cap.read()
+            except Exception:
+                out_data[frame_count] = {'Face ID': None,
+                            'Pitch': None,
+                            'Roll': None,
+                            'Yaw': None,
+                            'Box': None,
+                            'Landmarks': None,
+                            'error_reason': "Couldn't read frame"}
             faces = detector(frame)
+            mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            if faces == None or len(faces) < 1:
+                out_data[frame_count] = {'Face ID': None,
+                            'Pitch': None,
+                            'Roll': None,
+                            'Yaw': None,
+                            'Box': None,
+                            'Landmarks': None,
+                            'error_reason': "No face detected in frame"}
             face_id = 0
             for box, landmarks, score in faces:
                 if score < 0.95:
+                    out_data[frame_count] = {'Face ID': None,
+                            'Pitch': None,
+                            'Roll': None,
+                            'Yaw': None,
+                            'Box': None,
+                            'Landmarks': None,
+                            'error_reason': f"face confidence < 0.95 -> confidence: {score}"}
                     continue
                 x_min = int(box[0])
                 y_min = int(box[1])
@@ -90,14 +118,16 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                                          'Roll': r_pred_deg,
                                          'Yaw': y_pred_deg,
                                          'Box': box,
-                                         'Landmarks': landmarks}
+                                         'Landmarks': landmarks,
+                                         'error_reason': 'pass'}
+
                 face_id += 1
                 # if cv2.waitKey(25) & 0xFF == ord('q'):
                 #     break
     # release the video capture object
     cap.release()
     # Closes all the windows currently opened.
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
     if len(out_data) > 1:
         col_names = list(out_data[list(out_data.keys())[0]].keys())
         df = pd.DataFrame.from_dict(out_data, orient='index', columns=col_names)
@@ -122,7 +152,7 @@ def process_videos_from_queue(q, model, lock, thread_id, output_dir):
 def process_directory(video_dir, output_dir, num_threads=1):
     lock = Lock()
     q = video_queue(video_dir, output_dir)
-    snapshot_path = 'snapshots/6DRepNet_300W_LP_AFLW2000.pth'
+    snapshot_path = './model/6DRepNet_300W_LP_AFLW2000.pth'
     model = SixDRepNet(backbone_name='RepVGG-B1g2',
                     backbone_file='',
                     deploy=True,
@@ -137,13 +167,3 @@ def process_directory(video_dir, output_dir, num_threads=1):
         threads.append(thread)
     for thread in threads:
         thread.join()
-
-
-if __name__ == '__main__':
-
-    parent_dir = '../RAPIQUE-Python/data/LIVE-VQC/Video'
-    out_dir = 'processed_data'
-
-    process_directory(parent_dir, out_dir, num_threads=3)
-    
-    # print(extract_headpose(f'{parent_dir}/A001.mp4', out_dir))
