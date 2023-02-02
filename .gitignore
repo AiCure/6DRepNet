@@ -135,3 +135,5 @@ processed_data
 tmp
 .DS_Store
 *.mp4
+*.pt
+*.pth

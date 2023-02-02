@@ -1,4 +1,3 @@
-
 import sys
 sys.path.append('legacy_code')
 import os
@@ -10,11 +9,11 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
+import mediapipe as mp
 from pathlib import Path
 from moviepy.editor import *
 from model import SixDRepNet
 from torchvision import transforms
-from face_detection import RetinaFace
 
 
 def parse_args():
@@ -64,7 +63,7 @@ def annotate_frames(args):
     #model.cuda(gpu)
 
     # Test the Model
-    model.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
+    model.eval().to('cuda')  # Change model to 'eval' mode (BN uses moving mean/var).
 
     video_path = args.video_path
     
@@ -73,21 +72,32 @@ def annotate_frames(args):
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     filename = video_path.split('/')[-1].split('.')[0]
     #assert 1 == 2
+    mp_face_detection = mp.solutions.face_detection
+    face_detection = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5)
     with torch.no_grad():
         for i in tqdm(range(num_frames)):
             ret, frame = cap.read()
 
-            faces = detector(frame)
+            # faces = detector(frame)
+            mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-            for box, landmarks, score in faces:
-
+            # for box, landmarks, score in faces:
+            if not bool(mp_results.detections):
+                cv2.imwrite(f'{os.getcwd()}/tmp/frame_{i}.png', frame)
+                continue
+            for face in mp_results.detections:
+                if face.score[0] < 0.5:
                 # Print the location of each face in this image
-                if score < .95:
+                # if score < .95:
                     continue
-                x_min = int(box[0])
-                y_min = int(box[1])
-                x_max = int(box[2])
-                y_max = int(box[3])
+                # x_min = int(box[0])
+                # y_min = int(box[1])
+                # x_max = int(box[2])
+                # y_max = int(box[3])
+                x_min = int(face.location_data.relative_bounding_box.xmin * frame.shape[1])
+                y_min = int(face.location_data.relative_bounding_box.ymin * frame.shape[0])
+                x_max = x_min + int(face.location_data.relative_bounding_box.width * frame.shape[1])
+                y_max = y_min + int(face.location_data.relative_bounding_box.height * frame.shape[0])
                 bbox_width = abs(x_max - x_min)
                 bbox_height = abs(y_max - y_min)
 
@@ -101,7 +111,7 @@ def annotate_frames(args):
                 img = img.convert('RGB')
                 img = transformations(img)
 
-                img = torch.Tensor(img[None, :])#.cuda(gpu)
+                img = torch.Tensor(img[None, :]).cuda(gpu)
 
                 c = cv2.waitKey(1)
                 if c == 27:

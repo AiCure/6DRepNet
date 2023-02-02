@@ -12,7 +12,7 @@ from .model import SixDRepNet
 from collections import deque
 from torchvision import transforms
 from threading import Thread, Lock
-from face_detection import RetinaFace
+# from face_detection import RetinaFace
 
 
 class video_queue:
@@ -33,7 +33,8 @@ class video_queue:
 
 def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=None, thread_id=None):
     mp_face_detection = mp.solutions.face_detection
-    face_detection = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5)
+    min_conf = 0.5
+    face_detection = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=min_conf)
     out_data = dict()
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     if model == None:
@@ -52,7 +53,7 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                                       transforms.ToTensor(),
                                       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
     
-    detector = RetinaFace(gpu_id=0 if device != 'cpu' else -1)
+    # detector = RetinaFace(gpu_id=0 if device != 'cpu' else -1)
     cap = cv2.VideoCapture(video_path)
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     with torch.no_grad():
@@ -67,9 +68,10 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                             'Box': None,
                             'Landmarks': None,
                             'error_reason': "Couldn't read frame"}
-            faces = detector(frame)
+            # faces = detector(frame)
             mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            if faces == None or len(faces) < 1:
+            # if faces == None or len(faces) < 1:
+            if not bool(mp_results.detections):
                 out_data[frame_count] = {'Face ID': None,
                             'Pitch': None,
                             'Roll': None,
@@ -77,21 +79,27 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                             'Box': None,
                             'Landmarks': None,
                             'error_reason': "No face detected in frame"}
-            face_id = 0
-            for box, landmarks, score in faces:
-                if score < 0.95:
+                continue
+            # face_id = 0
+            # for box, landmarks, score in faces:
+            for face in mp_results.detections:
+                if face.score[0] < 0.5:
                     out_data[frame_count] = {'Face ID': None,
                             'Pitch': None,
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
                             'Landmarks': None,
-                            'error_reason': f"face confidence < 0.95 -> confidence: {score}"}
+                            'error_reason': f"face confidence < {min_conf} -> confidence: {face.score[0]}"}
                     continue
-                x_min = int(box[0])
-                y_min = int(box[1])
-                x_max = int(box[2])
-                y_max = int(box[3])
+                # x_min = int(box[0])
+                # y_min = int(box[1])
+                # x_max = int(box[2])
+                # y_max = int(box[3])
+                x_min = int(face.location_data.relative_bounding_box.xmin * frame.shape[1])
+                y_min = int(face.location_data.relative_bounding_box.ymin * frame.shape[0])
+                x_max = x_min + int(face.location_data.relative_bounding_box.width * frame.shape[1])
+                y_max = y_min + int(face.location_data.relative_bounding_box.height * frame.shape[0])
                 bbox_width = abs(x_max - x_min)
                 bbox_height = abs(y_max - y_min)
 
@@ -113,15 +121,15 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                 p_pred_deg = euler[:, 0].cpu().numpy().item()
                 y_pred_deg = euler[:, 1].cpu().numpy().item()
                 r_pred_deg = euler[:, 2].cpu().numpy().item()
-                out_data[frame_count] = {'Face ID': face_id,
+                out_data[frame_count] = {'Face ID': face.label_id[0],
                                          'Pitch': p_pred_deg,
                                          'Roll': r_pred_deg,
                                          'Yaw': y_pred_deg,
-                                         'Box': box,
-                                         'Landmarks': landmarks,
+                                         'Box': face.location_data.relative_bounding_box,
+                                         'Landmarks': face.location_data.relative_keypoints,
                                          'error_reason': 'pass'}
 
-                face_id += 1
+                # face_id += 1
                 # if cv2.waitKey(25) & 0xFF == ord('q'):
                 #     break
     # release the video capture object

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import math
-from backbone.repvgg import get_RepVGG_func_by_name
+from .backbone.repvgg import get_RepVGG_func_by_name
 from . import utils
 
 class SixDRepNet(nn.Module):
