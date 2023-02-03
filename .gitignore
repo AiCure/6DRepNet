@@ -137,3 +137,5 @@ tmp
 *.mp4
 *.pt
 *.pth
+/batch_base
+/aicurelib

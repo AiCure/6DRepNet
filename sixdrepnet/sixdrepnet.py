@@ -1,3 +1,4 @@
+import os
 import cv2
 import glob
 from . import utils
@@ -22,7 +23,8 @@ class video_queue:
         else:
             self.dataset_name = dataset_name
         self.out_dir = out_dir
-        paths = glob.glob(f'{parent_dir}/*.mp4')
+        # paths = glob.glob(f'{parent_dir}/*.mp4')
+        paths = glob.glob(f'{parent_dir}/**/*.mp4', recursive=True) # added in case videos are located in subdirectory
         self.video_paths = deque(paths)
         # Fix paths for windows
         paths = [s.replace('\\', '/') for s in paths]
@@ -160,7 +162,7 @@ def process_videos_from_queue(q, model, lock, thread_id, output_dir):
 def process_directory(video_dir, output_dir, num_threads=1):
     lock = Lock()
     q = video_queue(video_dir, output_dir)
-    snapshot_path = './model/6DRepNet_300W_LP_AFLW2000.pth'
+    snapshot_path = '/opt/ml-modeling/model/6DRepNet_300W_LP_AFLW2000.pth'
     model = SixDRepNet(backbone_name='RepVGG-B1g2',
                     backbone_file='',
                     deploy=True,
