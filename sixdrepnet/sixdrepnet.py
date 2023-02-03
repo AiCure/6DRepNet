@@ -36,7 +36,7 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
     mp_face_detection = mp.solutions.face_detection
     min_conf = 0.5
     face_detection = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=min_conf)
-    out_data = dict()
+    out_data = list()
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     if model == None:
         snapshot_path = 'snapshots/6DRepNet_300W_LP_AFLW2000.pth'
@@ -62,33 +62,36 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
             try:
                 ret, frame = cap.read()
             except Exception:
-                out_data[frame_count] = {'Face ID': None,
+                out_data.append({'Frame': frame_count,
+                            'Face ID': None,
                             'Pitch': None,
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
-                            'error_reason': "Couldn't read frame"}
+                            'error_reason': "Couldn't read frame"})
             # faces = detector(frame)
             mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             # if faces == None or len(faces) < 1:
             if not bool(mp_results.detections):
-                out_data[frame_count] = {'Face ID': None,
+                out_data.append({'Frame': frame_count,
+                            'Face ID': None,
                             'Pitch': None,
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
-                            'error_reason': "No face detected in frame"}
+                            'error_reason': "No face detected in frame"})
                 continue
             # face_id = 0
             # for box, landmarks, score in faces:
             for face in mp_results.detections:
                 if face.score[0] < 0.5:
-                    out_data[frame_count] = {'Face ID': None,
+                    out_data.append({'Frame': frame_count,
+                            'Face ID': None,
                             'Pitch': None,
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
-                            'error_reason': f"face confidence < {min_conf} -> confidence: {face.score[0]}"}
+                            'error_reason': f"face confidence < {min_conf} -> confidence: {face.score[0]}"})
                     continue
                 x_min = int(face.location_data.relative_bounding_box.xmin * frame.shape[1])
                 y_min = int(face.location_data.relative_bounding_box.ymin * frame.shape[0])
@@ -118,12 +121,13 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                 p_pred_deg = euler[:, 0].cpu().numpy().item()
                 y_pred_deg = euler[:, 1].cpu().numpy().item()
                 r_pred_deg = euler[:, 2].cpu().numpy().item()
-                out_data[frame_count] = {'Face ID': face.label_id[0],
+                out_data.append({'Frame': frame_count,
+                                         'Face ID': face.label_id[0],
                                          'Pitch': p_pred_deg,
                                          'Roll': r_pred_deg,
                                          'Yaw': y_pred_deg,
                                          'Box': bbox,
-                                         'error_reason': 'pass'}
+                                         'error_reason': 'pass'})
 
                 # face_id += 1
                 # if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -132,11 +136,7 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
     cap.release()
     # Closes all the windows currently opened.
     # cv2.destroyAllWindows()
-    if len(out_data) > 1:
-        col_names = list(out_data[list(out_data.keys())[0]].keys())
-        df = pd.DataFrame.from_dict(out_data, orient='index', columns=col_names)
-    elif len(out_data) == 0:
-        df = pd.DataFrame.from_dict(out_data)
+    df = pd.DataFrame(out_data)
     return df
 
 
@@ -150,7 +150,7 @@ def process_videos_from_queue(q, model, lock, thread_id, output_dir):
         if Path(f'{output_dir}/{q.dataset_name}/head_pose/{video_id}.csv').is_file():
             continue
         df = extract_headpose(video_path, video_id, num_left, num_videos, model, thread_id)
-        df.to_csv(f'{output_dir}/{q.dataset_name}/head_pose/{video_id}.csv')
+        df.to_csv(f'{output_dir}/{q.dataset_name}/head_pose/{video_id}.csv', index=False)
             
 
 def process_directory(video_dir, output_dir, num_threads=1):
