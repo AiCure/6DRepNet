@@ -1,0 +1,33 @@
+{
+    "jobDefinitionName": "new_hpose_cli",
+    "type": "container",
+    "parameters": {},
+    "containerProperties": {
+      "image": "272510231547.dkr.ecr.us-west-2.amazonaws.com/new_hpose_v1.1:latest",
+      "command": [
+        "--s3_path_to_input_csv",
+        "s3://simulated-td-videos/dev_encrtyped_videos.csv",
+        "--s3_path_to_result",
+        "s3://simulated-td-videos/encrypted_videos_result",
+        "--s3_path_to_output_prefix",
+        "s3://simulated-td-videos/encrypted_videos_result/",
+        "--s3_path_to_model",
+        "s3://simulated-td-videos/6DRepNet_300W_LP_AFLW2000.pth"
+      ],
+      "jobRoleArn": "arn:aws:iam::272510231547:role/dev-cortex-ecs-task-role",
+      "volumes": [],
+      "environment": [],
+      "mountPoints": [],
+      "ulimits": [],
+      "resourceRequirements": [
+        {
+          "value": "2",
+          "type": "VCPU"
+        },
+        {
+          "value": "8000",
+          "type": "MEMORY"
+        }
+      ]
+    }
+  }

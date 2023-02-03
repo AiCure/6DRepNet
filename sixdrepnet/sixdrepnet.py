@@ -13,7 +13,6 @@ from .model import SixDRepNet
 from collections import deque
 from torchvision import transforms
 from threading import Thread, Lock
-# from face_detection import RetinaFace
 
 
 class video_queue:
@@ -68,7 +67,6 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
-                            'Landmarks': None,
                             'error_reason': "Couldn't read frame"}
             # faces = detector(frame)
             mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
@@ -79,7 +77,6 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
-                            'Landmarks': None,
                             'error_reason': "No face detected in frame"}
                 continue
             # face_id = 0
@@ -91,17 +88,15 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                             'Roll': None,
                             'Yaw': None,
                             'Box': None,
-                            'Landmarks': None,
                             'error_reason': f"face confidence < {min_conf} -> confidence: {face.score[0]}"}
                     continue
-                # x_min = int(box[0])
-                # y_min = int(box[1])
-                # x_max = int(box[2])
-                # y_max = int(box[3])
                 x_min = int(face.location_data.relative_bounding_box.xmin * frame.shape[1])
                 y_min = int(face.location_data.relative_bounding_box.ymin * frame.shape[0])
                 x_max = x_min + int(face.location_data.relative_bounding_box.width * frame.shape[1])
                 y_max = y_min + int(face.location_data.relative_bounding_box.height * frame.shape[0])
+
+                bbox = {'x_min': x_min, 'y_min': y_min, 'x_max': x_max, 'y_max': y_max}
+
                 bbox_width = abs(x_max - x_min)
                 bbox_height = abs(y_max - y_min)
 
@@ -127,8 +122,7 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                                          'Pitch': p_pred_deg,
                                          'Roll': r_pred_deg,
                                          'Yaw': y_pred_deg,
-                                         'Box': face.location_data.relative_bounding_box,
-                                         'Landmarks': face.location_data.relative_keypoints,
+                                         'Box': bbox,
                                          'error_reason': 'pass'}
 
                 # face_id += 1
@@ -163,6 +157,7 @@ def process_directory(video_dir, output_dir, num_threads=1):
     lock = Lock()
     q = video_queue(video_dir, output_dir)
     snapshot_path = '/opt/ml-modeling/model/6DRepNet_300W_LP_AFLW2000.pth'
+    # snapshot_path = 'model/6DRepNet_300W_LP_AFLW2000.pth'
     model = SixDRepNet(backbone_name='RepVGG-B1g2',
                     backbone_file='',
                     deploy=True,

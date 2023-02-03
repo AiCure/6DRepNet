@@ -1,4 +1,3 @@
-
 import os
 import run_headpose as headpose
 from  batch_base.testing_util import clean_up_s3_output, check_s3_items

@@ -1,0 +1,8 @@
+{
+    "jobName": "new_hpose_cli",
+    "jobQueue": "new_hpose_2",
+    "jobDefinition": "new_hpose_cli:1",
+    "arrayProperties":{
+        "size":3
+    }
+}

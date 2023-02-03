@@ -1,7 +1,5 @@
 ARG AWS_ACCOUNT_ID=272510231547
 ARG AWS_REGION=us-west-2
-# ARG AI_BASE_IMAGE_TAG=python3.8-cpu-tf2.5
-# FROM $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ai_base_images:$AI_BASE_IMAGE_TAG
 FROM python:3.8
 
 RUN apt-get update
