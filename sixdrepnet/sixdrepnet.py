@@ -69,8 +69,19 @@ def extract_headpose(video_path, video_id=None, num_left=0, num_videos=1, model=
                             'Yaw': None,
                             'Box': None,
                             'error_reason': "Couldn't read frame"})
+                continue
             # faces = detector(frame)
-            mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            try:
+                mp_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            except Exception:
+                out_data.append({'Frame': frame_count,
+                            'Face ID': None,
+                            'Pitch': None,
+                            'Roll': None,
+                            'Yaw': None,
+                            'Box': None,
+                            'error_reason': "Couldn't convert BGR2RGB"})
+                continue
             # if faces == None or len(faces) < 1:
             if not bool(mp_results.detections):
                 out_data.append({'Frame': frame_count,
